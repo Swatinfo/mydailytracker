@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Str;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -77,6 +77,19 @@ class RoutineCategory extends Model
             ->where('is_active', true)
             ->whereRaw('JSON_CONTAINS(days_of_week, ?)', ['"' . $dayOfWeek . '"'])
             ->orderBy('start_time');
+    }
+
+    public function scopeWithTasksForDate($query, $date)
+    {
+        return $query->with(['routineTasks' => function ($tasksQuery) use ($date) {
+            $dayOfWeek = Carbon::parse($date)->dayOfWeek;
+            $tasksQuery->active()
+                ->whereRaw('JSON_CONTAINS(days_of_week, ?)', ['"' . $dayOfWeek . '"'])
+                ->with(['taskCompletions' => function ($completionQuery) use ($date) {
+                    $completionQuery->where('completion_date', $date);
+                }])
+                ->orderBy('start_time');
+        }]);
     }
 
     /**

@@ -31,12 +31,17 @@ class RoutineController extends Controller
             'day_name' => Carbon::parse($date)->format('l')
         ]);
 
+
+
+
         // Get categories with their tasks for the specific date
         $categories = RoutineCategory::active()
             ->with([
                 'routineTasks' => function ($query) use ($dayOfWeek) {
-                    $query->active()
-                        ->whereRaw('JSON_CONTAINS(days_of_week, ?)', ['"' . $dayOfWeek . '"'])
+                    $query->where('is_active', true)
+                        // ->whereRaw('JSON_CONTAINS(days_of_week, ?)', ['"' . $dayOfWeek . '"'])
+                        ->whereJsonContains('days_of_week', $dayOfWeek)
+
                         ->orderBy('start_time');
                 },
                 'routineTasks.taskCompletions' => function ($query) use ($date) {
@@ -46,6 +51,9 @@ class RoutineController extends Controller
             ->orderBy('sort_order')
             ->get();
 
+
+        // echo "<pre>" . print_r($categories, true) . "</pre>";
+        // exit;
         // Debug: Log task counts
         foreach ($categories as $category) {
             Log::info("Category Tasks", [
@@ -69,7 +77,8 @@ class RoutineController extends Controller
             ->with([
                 'routineTasks' => function ($query) use ($dayOfWeek) {
                     $query->active()
-                        ->whereRaw('JSON_CONTAINS(days_of_week, ?)', ['"' . $dayOfWeek . '"'])
+                        // ->whereRaw('JSON_CONTAINS(days_of_week, ?)', ['"' . $dayOfWeek . '"'])
+                        ->whereJsonContains('days_of_week', $dayOfWeek)
                         ->orderBy('start_time');
                 },
                 'routineTasks.taskCompletions' => function ($query) use ($date) {
@@ -251,7 +260,8 @@ class RoutineController extends Controller
 
         // Get all scheduled tasks for the date
         $scheduledTasks = RoutineTask::active()
-            ->whereRaw('JSON_CONTAINS(days_of_week, ?)', ['"' . $dayOfWeek . '"'])
+            // ->whereRaw('JSON_CONTAINS(days_of_week, ?)', ['"' . $dayOfWeek . '"'])
+            ->whereJsonContains('days_of_week', $dayOfWeek)
             ->with(['taskCompletions' => function ($query) use ($date) {
                 $query->where('completion_date', $date);
             }])
@@ -487,7 +497,8 @@ class RoutineController extends Controller
 
         // Get tasks scheduled for this day
         $scheduledTasks = RoutineTask::active()
-            ->whereRaw('JSON_CONTAINS(days_of_week, ?)', ['"' . $dayOfWeek . '"'])
+            // ->whereRaw('JSON_CONTAINS(days_of_week, ?)', ['"' . $dayOfWeek . '"'])
+            ->whereJsonContains('days_of_week', $dayOfWeek)
             ->with('routineCategory')
             ->get()
             ->map(function ($task) {
